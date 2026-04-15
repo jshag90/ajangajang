@@ -21,4 +21,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "ajangajang"
 include(":app")
+include(":tools:checklist-parser")
  

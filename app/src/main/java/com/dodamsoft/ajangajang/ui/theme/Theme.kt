@@ -1,58 +1,86 @@
 package com.dodamsoft.ajangajang.ui.theme
 
-import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
-
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+    primary = Coral40,
     onPrimary = Color.White,
+    primaryContainer = CoralContainerLight,
+    onPrimaryContainer = OnCoralLight,
+    secondary = Peach40,
     onSecondary = Color.White,
+    secondaryContainer = PeachContainerLight,
+    onSecondaryContainer = OnPeachLight,
+    tertiary = Mint40,
     onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    tertiaryContainer = MintContainerLight,
+    onTertiaryContainer = OnMintLight,
+    background = CreamBackground,
+    onBackground = OnCream,
+    surface = CreamSurface,
+    onSurface = OnCream,
+    surfaceVariant = CreamSurfaceVariant,
+    onSurfaceVariant = OnCreamVariant,
+    outline = CreamOutline,
+    outlineVariant = CreamOutline,
+    error = StateDanger,
+    onError = Color.White,
+)
+
+private val DarkColorScheme = darkColorScheme(
+    primary = Coral80,
+    onPrimary = Color(0xFF3A140B),
+    primaryContainer = CoralContainerDark,
+    onPrimaryContainer = OnCoralDark,
+    secondary = Peach80,
+    onSecondary = Color(0xFF3A1F05),
+    secondaryContainer = PeachContainerDark,
+    onSecondaryContainer = OnPeachDark,
+    tertiary = Mint80,
+    onTertiary = Color(0xFF0B3629),
+    tertiaryContainer = MintContainerDark,
+    onTertiaryContainer = OnMintDark,
+    background = DarkBackground,
+    onBackground = OnDark,
+    surface = DarkSurface,
+    onSurface = OnDark,
+    surfaceVariant = DarkSurfaceVariant,
+    onSurfaceVariant = OnDarkVariant,
+    outline = DarkOutline,
+    outlineVariant = DarkOutline,
+    error = StateDanger,
+    onError = Color.White,
+)
+
+// 영유아 앱: 전반적으로 둥글고 폭신한 셰이프
+private val AjangShapes = Shapes(
+    extraSmall = RoundedCornerShape(10.dp),
+    small = RoundedCornerShape(14.dp),
+    medium = RoundedCornerShape(20.dp),
+    large = RoundedCornerShape(28.dp),
+    extraLarge = RoundedCornerShape(36.dp),
 )
 
 @Composable
 fun AjangajangTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    // Dynamic color disabled: 브랜드 파스텔 팔레트를 일관되게 유지
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
-        content = content
+        typography = AjangTypography,
+        shapes = AjangShapes,
+        content = content,
     )
 }
