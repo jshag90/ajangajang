@@ -5,34 +5,30 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
-import android.graphics.Typeface
 import com.dodamsoft.ajangajang.domain.model.AreaScore
 import com.dodamsoft.ajangajang.domain.model.CheckResult
 import com.dodamsoft.ajangajang.domain.model.ChildProfile
 import com.dodamsoft.ajangajang.domain.model.DevelopmentAreaMeta
-import com.dodamsoft.ajangajang.domain.model.DevelopmentAreaType
-import com.dodamsoft.ajangajang.domain.model.ResultTier
+import com.dodamsoft.ajangajang.ui.theme.BrandArgb
+import com.dodamsoft.ajangajang.ui.theme.areaAccentArgb
+import com.dodamsoft.ajangajang.ui.theme.resultTierArgb
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-/**
- * Renders a 1080 × 1350 share card bitmap for a [CheckResult].
- * Pure Android Canvas — no Compose involvement, so it renders identically from any thread.
- */
 object ResultImageExporter {
 
     private const val WIDTH = 1080
     private const val HEIGHT = 1350
     private const val PADDING = 64f
 
-    private const val CREAM = 0xFFFFF9F5.toInt()
-    private const val CORAL = 0xFFE78F7C.toInt()
-    private const val PEACH = 0xFFE8A87C.toInt()
-    private const val MINT = 0xFF67BFA3.toInt()
-    private const val DARK_TEXT = 0xFF3A2C28.toInt()
-    private const val SUB_TEXT = 0xFF7A6158.toInt()
-    private const val BAR_BG = 0xFFF5E1D6.toInt()
-    private const val BADGE_BG = 0xFFFFECE4.toInt()
+    private val CREAM get() = BrandArgb.CREAM
+    private val CORAL get() = BrandArgb.CORAL
+    private val MINT get() = BrandArgb.MINT
+    private val DARK_TEXT get() = BrandArgb.DARK_TEXT
+    private val SUB_TEXT get() = BrandArgb.SUB_TEXT
+    private val BADGE_BG get() = BrandArgb.BADGE_BG
+
+    private val DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
 
     fun render(
         @Suppress("UNUSED_PARAMETER") context: Context,
@@ -44,22 +40,11 @@ object ResultImageExporter {
 
         canvas.drawColor(CREAM)
 
-        // 1. Top wordmark + date
         drawTopHeader(canvas)
-
-        // 2. Child name + tier badge
         drawChildStrip(canvas, result, childProfile)
-
-        // 3. Giant overall %
         drawOverallPercentage(canvas, result)
-
-        // 4. Area bars (4 rows)
         drawAreaBars(canvas, result.areaScores)
-
-        // 5. Tip card (single line)
         drawTipCard(canvas, result)
-
-        // 6. Footer watermark
         drawFooter(canvas)
 
         return bitmap
@@ -74,7 +59,7 @@ object ResultImageExporter {
 
         // Date top-right
         val datePaint = textPaint(28f, SUB_TEXT)
-        val dateText = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy.MM.dd"))
+        val dateText = LocalDate.now().format(DATE_FORMATTER)
         val dateWidth = datePaint.measureText(dateText)
         canvas.drawText(dateText, WIDTH - PADDING - dateWidth, 110f, datePaint)
     }
@@ -92,7 +77,7 @@ object ResultImageExporter {
 
         // Tier pill
         val tierLabel = result.overallTier.label
-        val tierPaint = textPaint(30f, tierColor(result.overallTier), bold = true)
+        val tierPaint = textPaint(30f, resultTierArgb(result.overallTier), bold = true)
         val pillLeft = PADDING
         val pillTop = 290f
         val pillPadH = 28f
@@ -103,7 +88,7 @@ object ResultImageExporter {
         canvas.drawRoundRect(
             RectF(pillLeft, pillTop, pillRight, pillBottom),
             40f, 40f,
-            fillPaint(withAlpha(tierColor(result.overallTier), 0x2F)),
+            fillPaint(withAlpha(resultTierArgb(result.overallTier), 0x2F)),
         )
         canvas.drawText(tierLabel, pillLeft + pillPadH, pillBottom - pillPadV - 6, tierPaint)
     }
@@ -111,9 +96,8 @@ object ResultImageExporter {
     private fun drawOverallPercentage(canvas: Canvas, result: CheckResult) {
         val cx = WIDTH / 2f
         val cy = 560f
-        val tierC = tierColor(result.overallTier)
+        val tierC = resultTierArgb(result.overallTier)
 
-        // Outer ring background
         val ringRadius = 220f
         val ringRect = RectF(cx - ringRadius, cy - ringRadius, cx + ringRadius, cy + ringRadius)
 
@@ -135,14 +119,12 @@ object ResultImageExporter {
         val sweepAngle = result.overallRatio.coerceIn(0f, 1f) * 360f
         canvas.drawArc(ringRect, -90f, sweepAngle, false, ringFgPaint)
 
-        // Big % text centered
         val percentage = (result.overallRatio * 100).toInt()
         val percentPaint = textPaint(180f, tierC, bold = true)
         val percentText = "$percentage%"
         val textWidth = percentPaint.measureText(percentText)
         canvas.drawText(percentText, cx - textWidth / 2, cy + 50, percentPaint)
 
-        // Label below
         val labelPaint = textPaint(26f, SUB_TEXT)
         val label = "${result.checkedIds.size} / ${result.stage.totalCount()} 항목 충족"
         val labelWidth = labelPaint.measureText(label)
@@ -156,13 +138,11 @@ object ResultImageExporter {
 
         scores.forEachIndexed { index, score ->
             val y = top + index * (rowHeight + gap)
-            val accent = areaColor(score.type)
+            val accent = areaAccentArgb(score.type)
 
-            // Label
             val label = DevelopmentAreaMeta.labelOf(score.type)
             canvas.drawText(label, PADDING, y + 36, textPaint(28f, DARK_TEXT, bold = true))
 
-            // Bar
             val barLeft = PADDING + 290f
             val barRight = WIDTH - PADDING - 140f
             val barTop = y + 18f
@@ -180,7 +160,6 @@ object ResultImageExporter {
                 )
             }
 
-            // Right-aligned percentage
             val pct = (score.ratio * 100).toInt()
             val pctText = "${score.checked}/${score.total} · $pct%"
             val pctPaint = textPaint(24f, SUB_TEXT)
@@ -225,32 +204,4 @@ object ResultImageExporter {
         return text.substring(0, end) + ellipsis
     }
 
-    private fun textPaint(sizePx: Float, color: Int, bold: Boolean = false): Paint = Paint().apply {
-        isAntiAlias = true
-        this.color = color
-        textSize = sizePx
-        typeface = if (bold) Typeface.create(Typeface.DEFAULT, Typeface.BOLD) else Typeface.DEFAULT
-    }
-
-    private fun fillPaint(color: Int): Paint = Paint().apply {
-        isAntiAlias = true
-        style = Paint.Style.FILL
-        this.color = color
-    }
-
-    private fun withAlpha(color: Int, alpha: Int): Int =
-        (alpha shl 24) or (color and 0x00FFFFFF)
-
-    private fun tierColor(tier: ResultTier): Int = when (tier) {
-        ResultTier.NORMAL -> 0xFF7FC8A9.toInt()
-        ResultTier.CAUTION -> 0xFFF4B860.toInt()
-        ResultTier.CONSULT -> CORAL
-    }
-
-    private fun areaColor(type: DevelopmentAreaType): Int = when (type) {
-        DevelopmentAreaType.SOCIAL -> 0xFFF7A8B8.toInt()
-        DevelopmentAreaType.LANGUAGE -> 0xFF8CC8E8.toInt()
-        DevelopmentAreaType.COGNITIVE -> 0xFFBFA8D9.toInt()
-        DevelopmentAreaType.PHYSICAL -> 0xFF9FD9BF.toInt()
-    }
 }

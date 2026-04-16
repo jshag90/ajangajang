@@ -204,7 +204,6 @@ private fun StageCard(
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 3.dp),
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // 상단 좌측: 아이콘
             Box(
                 modifier = Modifier
                     .padding(14.dp)
@@ -218,7 +217,6 @@ private fun StageCard(
                     style = MaterialTheme.typography.headlineMedium,
                 )
             }
-            // 상단 우측: 특성 태그 pill
             Surface(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -234,7 +232,6 @@ private fun StageCard(
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                 )
             }
-            // 하단: 개월수 + 체크 개수
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomStart)

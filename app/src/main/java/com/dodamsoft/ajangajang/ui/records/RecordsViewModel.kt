@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.YearMonth
@@ -24,6 +26,11 @@ data class MonthGroup(
 
 data class TrendSeries(
     val points: List<Pair<Int, Float>>,  // (ageMonths, ratio)
+)
+
+private data class GroupingResult(
+    val groups: List<MonthGroup>,
+    val trend: TrendSeries?,
 )
 
 data class RecordsUiState(
@@ -48,27 +55,23 @@ class RecordsViewModel(
     val state: StateFlow<RecordsUiState> = _state.asStateFlow()
 
     init {
+        val groupingFlow = observeAll()
+            .distinctUntilChanged()
+            .map { records -> regroup(records) }
+
         viewModelScope.launch {
-            observeAll().combine(observeChildProfiles()) { records, profiles -> records to profiles }
-                .collect { (records, profiles) ->
-                    val grouped = records
-                        .groupBy { YearMonth.from(it.checkedAt) }
-                        .toSortedMap(compareByDescending { it })
-                        .map { (month, list) ->
-                            MonthGroup(month, list.sortedByDescending { it.checkedAt })
-                        }
-                    val trendPoints = records
-                        .sortedBy { it.ageMonths }
-                        .map { it.ageMonths to it.overallRatio }
-                    _state.update {
-                        it.copy(
-                            groups = grouped,
-                            profiles = profiles,
-                            loading = false,
-                            trend = if (trendPoints.size >= 2) TrendSeries(trendPoints) else null,
-                        )
-                    }
+            groupingFlow.combine(observeChildProfiles()) { grouping, profiles ->
+                grouping to profiles
+            }.collect { (grouping, profiles) ->
+                _state.update {
+                    it.copy(
+                        groups = grouping.groups,
+                        trend = grouping.trend,
+                        profiles = profiles,
+                        loading = false,
+                    )
                 }
+            }
         }
     }
 
@@ -85,5 +88,19 @@ class RecordsViewModel(
 
     fun closeResult() {
         _state.update { it.copy(openResult = null, openChild = null) }
+    }
+
+    private fun regroup(records: List<CheckRecord>): GroupingResult {
+        val groups = records
+            .groupBy { YearMonth.from(it.checkedAt) }
+            .toSortedMap(compareByDescending { it })
+            .map { (month, list) ->
+                MonthGroup(month, list.sortedByDescending { it.checkedAt })
+            }
+        val trendPoints = records
+            .sortedBy { it.ageMonths }
+            .map { it.ageMonths to it.overallRatio }
+        val trend = if (trendPoints.size >= 2) TrendSeries(trendPoints) else null
+        return GroupingResult(groups, trend)
     }
 }

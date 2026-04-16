@@ -5,12 +5,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.sp
 import kotlin.math.cos
@@ -18,7 +20,7 @@ import kotlin.math.min
 import kotlin.math.sin
 
 /**
- * 4-axis radar chart. Stateless and self-contained.
+ * 4-axis radar chart.
  *
  * @param values 4 ratios in [0, 1] in the order: social / language / cognitive / physical.
  * @param labels 4 labels matching [values].
@@ -39,6 +41,14 @@ fun RadarChart4(
     val density = LocalDensity.current
     val labelTextSizePx = with(density) { 13.sp.toPx() }
     val labelArgb = labelColor.toArgb()
+    val labelPaint = remember(labelArgb, labelTextSizePx) {
+        android.graphics.Paint().apply {
+            isAntiAlias = true
+            color = labelArgb
+            textSize = labelTextSizePx
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+        }
+    }
 
     Box(modifier = modifier) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -46,7 +56,6 @@ fun RadarChart4(
             val cy = size.height / 2f
             val radius = min(size.width, size.height) / 2f - 56f
 
-            // Angles: 12-, 3-, 6-, 9-o'clock
             val angles = floatArrayOf(
                 (-Math.PI / 2).toFloat(),
                 0f,
@@ -54,7 +63,6 @@ fun RadarChart4(
                 Math.PI.toFloat(),
             )
 
-            // Grid rings (4-sided polygons, concentric)
             for (step in 1..gridSteps) {
                 val r = radius * step / gridSteps
                 val path = Path()
@@ -67,7 +75,6 @@ fun RadarChart4(
                 drawPath(path, color = gridColor.copy(alpha = 0.2f), style = Stroke(width = 1f))
             }
 
-            // Axes
             angles.forEach { angle ->
                 val x = cx + radius * cos(angle)
                 val y = cy + radius * sin(angle)
@@ -79,7 +86,6 @@ fun RadarChart4(
                 )
             }
 
-            // Data polygon
             val dataPath = Path()
             angles.forEachIndexed { i, angle ->
                 val r = radius * values[i].coerceIn(0f, 1f)
@@ -91,7 +97,6 @@ fun RadarChart4(
             drawPath(dataPath, color = fillColor.copy(alpha = 0.25f))
             drawPath(dataPath, color = fillColor, style = Stroke(width = 3f))
 
-            // Vertex dots
             angles.forEachIndexed { i, angle ->
                 val r = radius * values[i].coerceIn(0f, 1f)
                 val x = cx + r * cos(angle)
@@ -99,43 +104,28 @@ fun RadarChart4(
                 drawCircle(fillColor, radius = 6f, center = Offset(x, y))
             }
 
-            // Labels — use nativeCanvas + Paint for fast text rendering
-            val paint = android.graphics.Paint().apply {
-                isAntiAlias = true
-                color = labelArgb
-                textSize = labelTextSizePx
-                typeface = android.graphics.Typeface.DEFAULT_BOLD
-            }
             val labelOffset = 28f
             drawContext.canvas.nativeCanvas.apply {
                 angles.forEachIndexed { i, angle ->
                     val x = cx + (radius + labelOffset) * cos(angle)
                     val y = cy + (radius + labelOffset) * sin(angle)
                     val label = labels[i]
-                    val textWidth = paint.measureText(label)
+                    val textWidth = labelPaint.measureText(label)
                     val drawX = when (i) {
-                        0 -> x - textWidth / 2f                    // top (center)
-                        1 -> x                                      // right (left-aligned)
-                        2 -> x - textWidth / 2f                    // bottom (center)
-                        else -> x - textWidth                      // left (right-aligned)
+                        0 -> x - textWidth / 2f
+                        1 -> x
+                        2 -> x - textWidth / 2f
+                        else -> x - textWidth
                     }
                     val drawY = when (i) {
-                        0 -> y - 8f                                 // top
-                        1 -> y + 10f                                // right
-                        2 -> y + 30f                                // bottom
-                        else -> y + 10f                             // left
+                        0 -> y - 8f
+                        1 -> y + 10f
+                        2 -> y + 30f
+                        else -> y + 10f
                     }
-                    drawText(label, drawX, drawY, paint)
+                    drawText(label, drawX, drawY, labelPaint)
                 }
             }
         }
     }
-}
-
-private fun Color.toArgb(): Int {
-    val a = (alpha * 255).toInt() and 0xFF
-    val r = (red * 255).toInt() and 0xFF
-    val g = (green * 255).toInt() and 0xFF
-    val b = (blue * 255).toInt() and 0xFF
-    return (a shl 24) or (r shl 16) or (g shl 8) or b
 }

@@ -22,11 +22,9 @@ fun RootNavHost(
 ) {
     val rootNavController = rememberNavController()
     val prefs by prefsViewModel.preferences.collectAsState()
-    val loaded by prefsViewModel.loaded.collectAsState()
 
-    if (!loaded) return
-
-    val startDestination = if (prefs.onboardingCompleted) MainGraphRoute else OnboardingRoute
+    val current = prefs ?: return
+    val startDestination = if (current.onboardingCompleted) MainGraphRoute else OnboardingRoute
 
     NavHost(
         navController = rootNavController,

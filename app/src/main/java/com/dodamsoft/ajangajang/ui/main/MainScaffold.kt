@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
@@ -35,14 +36,13 @@ import com.dodamsoft.ajangajang.ui.nav.RecordsTabRoute
 import com.dodamsoft.ajangajang.ui.nav.SettingsTabRoute
 import com.dodamsoft.ajangajang.ui.records.RecordsScreen
 import com.dodamsoft.ajangajang.ui.settings.SettingsScreen
-import kotlin.reflect.KClass
 
 private data class BottomTab(
     val route: Any,
     val label: String,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector,
-    val klass: KClass<*>,
+    val matches: (NavDestination) -> Boolean,
 )
 
 private val tabs = listOf(
@@ -51,28 +51,28 @@ private val tabs = listOf(
         label = "홈",
         selectedIcon = Icons.Filled.Home,
         unselectedIcon = Icons.Outlined.Home,
-        klass = HomeTabRoute::class,
+        matches = { it.hasRoute<HomeTabRoute>() },
     ),
     BottomTab(
         route = ChecklistTabRoute,
         label = "체크리스트",
         selectedIcon = Icons.Filled.Checklist,
         unselectedIcon = Icons.Outlined.Checklist,
-        klass = ChecklistTabRoute::class,
+        matches = { it.hasRoute<ChecklistTabRoute>() },
     ),
     BottomTab(
         route = RecordsTabRoute,
         label = "기록",
         selectedIcon = Icons.Filled.History,
         unselectedIcon = Icons.Outlined.History,
-        klass = RecordsTabRoute::class,
+        matches = { it.hasRoute<RecordsTabRoute>() },
     ),
     BottomTab(
         route = SettingsTabRoute,
         label = "설정",
         selectedIcon = Icons.Filled.Settings,
         unselectedIcon = Icons.Outlined.Settings,
-        klass = SettingsTabRoute::class,
+        matches = { it.hasRoute<SettingsTabRoute>() },
     ),
 )
 
@@ -88,14 +88,9 @@ fun MainScaffold(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-            ) {
+            NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                 tabs.forEach { tab ->
-                    val selected = currentDestination?.hierarchy?.any { dest ->
-                        @Suppress("UNCHECKED_CAST")
-                        dest.hasRoute(tab.klass as KClass<Any>)
-                    } == true
+                    val selected = currentDestination?.hierarchy?.any(tab.matches) == true
                     NavigationBarItem(
                         selected = selected,
                         onClick = {
@@ -167,4 +162,3 @@ fun MainScaffold(
         }
     }
 }
-

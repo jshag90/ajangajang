@@ -16,18 +16,13 @@ class PreferencesViewModel : ViewModel() {
 
     private val repo = AppContainer.appPreferences()
 
-    private val _preferences = MutableStateFlow(AppPreferences())
-    val preferences: StateFlow<AppPreferences> = _preferences.asStateFlow()
-
-    private val _loaded = MutableStateFlow(false)
-    val loaded: StateFlow<Boolean> = _loaded.asStateFlow()
+    // `null` means not yet loaded from DataStore; routing should wait until it emits.
+    private val _preferences = MutableStateFlow<AppPreferences?>(null)
+    val preferences: StateFlow<AppPreferences?> = _preferences.asStateFlow()
 
     init {
         viewModelScope.launch {
-            repo.preferences.collect { prefs ->
-                _preferences.value = prefs
-                _loaded.value = true
-            }
+            repo.preferences.collect { prefs -> _preferences.value = prefs }
         }
     }
 

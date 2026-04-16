@@ -52,14 +52,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dodamsoft.ajangajang.di.AppContainer
 import com.dodamsoft.ajangajang.domain.model.CheckRecord
 import com.dodamsoft.ajangajang.domain.model.ChildProfile
-import com.dodamsoft.ajangajang.domain.model.ResultTier
-import com.dodamsoft.ajangajang.ui.checklist.resultTierColor
+import com.dodamsoft.ajangajang.util.Constants
 import com.dodamsoft.ajangajang.ui.profile.ProfileAddBottomSheet
+import com.dodamsoft.ajangajang.ui.theme.resultTierColor
 import com.dodamsoft.ajangajang.util.koreanPossessive
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-private val availableMonths = listOf(2, 4, 6, 9, 12, 15, 18, 24, 30, 36, 48, 60)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -245,7 +244,7 @@ private fun AgePickerHeroCard(
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                availableMonths.forEach { months ->
+                Constants.ALL_MONTHS.forEach { months ->
                     AgeChip(months = months, onClick = { onSelectMonths(months) })
                 }
             }
@@ -576,5 +575,5 @@ private fun FaqRow(q: String, a: String) {
 }
 
 private fun nearestStageFor(months: Int): Int {
-    return availableMonths.minByOrNull { kotlin.math.abs(it - months) } ?: 12
+    return Constants.ALL_MONTHS.minByOrNull { kotlin.math.abs(it - months) } ?: 12
 }

@@ -27,3 +27,12 @@ data class ChildProfile(
         }
     }
 }
+
+/**
+ * Fallback chain: explicit active id → primary flag → first profile.
+ * Single source of truth for "which child is currently being viewed."
+ */
+fun List<ChildProfile>.resolveActive(activeChildId: Long?): ChildProfile? =
+    firstOrNull { it.id == activeChildId }
+        ?: firstOrNull { it.isPrimary }
+        ?: firstOrNull()

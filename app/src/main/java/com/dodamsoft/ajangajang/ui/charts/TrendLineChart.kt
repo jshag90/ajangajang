@@ -5,20 +5,22 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.sp
 
 data class TrendPoint(val ageMonths: Int, val ratio: Float)
 
 /**
- * Simple single-series line chart for overall ratio over baby-age-at-check.
- * X-axis = ageMonths, Y-axis = ratio [0, 1].
+ * Single-series line chart for overall ratio over baby age.
+ * X-axis = ageMonths (falls back to index when all points share an age), Y-axis = ratio [0, 1].
  */
 @Composable
 fun TrendLineChart(
@@ -34,6 +36,14 @@ fun TrendLineChart(
     val density = LocalDensity.current
     val labelSizePx = with(density) { 11.sp.toPx() }
     val axisLabelArgb = axisLabelColor.toArgb()
+    val labelPaint = remember(axisLabelArgb, labelSizePx) {
+        android.graphics.Paint().apply {
+            isAntiAlias = true
+            color = axisLabelArgb
+            textSize = labelSizePx
+            typeface = android.graphics.Typeface.DEFAULT
+        }
+    }
 
     Box(modifier = modifier) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -49,13 +59,6 @@ fun TrendLineChart(
             val chartWidth = chartRight - chartLeft
             val chartHeight = chartBottom - chartTop
 
-            // Grid lines at 0, 25, 50, 75, 100%
-            val paint = android.graphics.Paint().apply {
-                isAntiAlias = true
-                color = axisLabelArgb
-                textSize = labelSizePx
-                typeface = android.graphics.Typeface.DEFAULT
-            }
             for (i in 0..4) {
                 val y = chartTop + chartHeight * (1f - i / 4f)
                 drawLine(
@@ -67,13 +70,12 @@ fun TrendLineChart(
                 val label = "${i * 25}"
                 drawContext.canvas.nativeCanvas.drawText(
                     label,
-                    chartLeft - 8f - paint.measureText(label),
+                    chartLeft - 8f - labelPaint.measureText(label),
                     y + labelSizePx / 3f,
-                    paint,
+                    labelPaint,
                 )
             }
 
-            // Build data path — if all points share an age, space them evenly by index
             val minAge = points.minOf { it.ageMonths }
             val maxAge = points.maxOf { it.ageMonths }
             val ageSpread = maxAge - minAge
@@ -112,7 +114,6 @@ fun TrendLineChart(
             }
             drawPath(linePath, color = lineColor, style = Stroke(width = 4f))
 
-            // Dots + age labels
             points.forEachIndexed { i, point ->
                 val p = px(i)
                 drawCircle(lineColor, radius = 6f, center = p)
@@ -121,19 +122,11 @@ fun TrendLineChart(
                 val ageLabel = "${point.ageMonths}개월"
                 drawContext.canvas.nativeCanvas.drawText(
                     ageLabel,
-                    p.x - paint.measureText(ageLabel) / 2,
+                    p.x - labelPaint.measureText(ageLabel) / 2,
                     chartBottom + labelSizePx + 8f,
-                    paint,
+                    labelPaint,
                 )
             }
         }
     }
-}
-
-private fun Color.toArgb(): Int {
-    val a = (alpha * 255).toInt() and 0xFF
-    val r = (red * 255).toInt() and 0xFF
-    val g = (green * 255).toInt() and 0xFF
-    val b = (blue * 255).toInt() and 0xFF
-    return (a shl 24) or (r shl 16) or (g shl 8) or b
 }

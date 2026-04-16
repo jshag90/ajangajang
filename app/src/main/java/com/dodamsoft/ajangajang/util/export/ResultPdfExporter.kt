@@ -4,13 +4,13 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
-import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import com.dodamsoft.ajangajang.domain.model.CheckResult
 import com.dodamsoft.ajangajang.domain.model.ChildProfile
 import com.dodamsoft.ajangajang.domain.model.DevelopmentAreaMeta
-import com.dodamsoft.ajangajang.domain.model.DevelopmentAreaType
-import com.dodamsoft.ajangajang.domain.model.ResultTier
+import com.dodamsoft.ajangajang.ui.theme.BrandArgb
+import com.dodamsoft.ajangajang.ui.theme.areaAccentArgb
+import com.dodamsoft.ajangajang.ui.theme.resultTierArgb
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -20,14 +20,14 @@ object ResultPdfExporter {
     private const val PAGE_HEIGHT = 842
     private const val MARGIN = 40f
 
-    // Brand palette (mirrors Compose theme)
-    private const val CORAL = 0xFFE78F7C.toInt()
-    private const val PEACH = 0xFFE8A87C.toInt()
-    private const val MINT = 0xFF67BFA3.toInt()
-    private const val CREAM = 0xFFFFF9F5.toInt()
-    private const val OUTLINE = 0xFFEBD3C4.toInt()
-    private const val DARK_TEXT = 0xFF3A2C28.toInt()
-    private const val SUB_TEXT = 0xFF7A6158.toInt()
+    private val CORAL get() = BrandArgb.CORAL
+    private val MINT get() = BrandArgb.MINT
+    private val CREAM get() = BrandArgb.CREAM
+    private val OUTLINE get() = BrandArgb.OUTLINE
+    private val DARK_TEXT get() = BrandArgb.DARK_TEXT
+    private val SUB_TEXT get() = BrandArgb.SUB_TEXT
+
+    private val DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy년 M월 d일")
 
     fun render(
         @Suppress("UNUSED_PARAMETER") context: Context,
@@ -57,26 +57,24 @@ object ResultPdfExporter {
         canvas.drawText("아장아장 발달 체크 결과", MARGIN, y + 20, titlePaint)
         y += 36
 
-        // Child + date strip
         val strip = buildString {
             append(childProfile?.name ?: "우리 아이")
             append(" · ")
             append(childProfile?.ageDisplay() ?: "${result.stage.months}개월")
             append("  |  ")
-            append(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy년 M월 d일")))
+            append(LocalDate.now().format(DATE_FORMATTER))
         }
         canvas.drawText(strip, MARGIN, y + 14, textPaint(11f, SUB_TEXT))
         y += 28
 
         // Divider
-        canvas.drawLine(MARGIN, y, PAGE_WIDTH - MARGIN, y, linePaint(OUTLINE, 1f))
+        canvas.drawLine(MARGIN, y, PAGE_WIDTH - MARGIN, y, strokePaint(OUTLINE, 1f))
         y += 18
 
         // Overall score block
         y = drawOverallBlock(canvas, y, result)
         y += 18
 
-        // Area scores
         y = drawAreaScores(canvas, y, result)
         y += 16
 
@@ -166,9 +164,8 @@ object ResultPdfExporter {
             }
         }
 
-        // Footer
         val footerY = PAGE_HEIGHT - 24f
-        canvas.drawLine(MARGIN, footerY - 16, PAGE_WIDTH - MARGIN, footerY - 16, linePaint(OUTLINE, 0.5f))
+        canvas.drawLine(MARGIN, footerY - 16, PAGE_WIDTH - MARGIN, footerY - 16, strokePaint(OUTLINE, 0.5f))
         val footerPaint = textPaint(8.5f, SUB_TEXT)
         canvas.drawText(
             "아장아장 · 도담소프트 · 참고 출처: CDC, 우리아이114",
@@ -180,8 +177,8 @@ object ResultPdfExporter {
 
     private fun drawOverallBlock(canvas: Canvas, startY: Float, result: CheckResult): Float {
         val percentage = (result.overallRatio * 100).toInt()
-        val tierPaint = textPaint(12f, tierColor(result.overallTier), bold = true)
-        val percentPaint = textPaint(52f, tierColor(result.overallTier), bold = true)
+        val tierPaint = textPaint(12f, resultTierArgb(result.overallTier), bold = true)
+        val percentPaint = textPaint(52f, resultTierArgb(result.overallTier), bold = true)
 
         // Card bg
         val cardRect = RectF(MARGIN, startY, PAGE_WIDTH - MARGIN, startY + 100)
@@ -198,7 +195,6 @@ object ResultPdfExporter {
             textPaint(10f, SUB_TEXT),
         )
 
-        // Progress bar on right
         val barLeft = cardRect.right - 200
         val barRight = cardRect.right - 20
         val barTop = cardRect.top + 78
@@ -206,7 +202,7 @@ object ResultPdfExporter {
         canvas.drawRoundRect(RectF(barLeft, barTop, barRight, barBottom), 5f, 5f, fillPaint(0xFFF5DDD3.toInt()))
         canvas.drawRoundRect(
             RectF(barLeft, barTop, barLeft + (barRight - barLeft) * result.overallRatio, barBottom),
-            5f, 5f, fillPaint(tierColor(result.overallTier)),
+            5f, 5f, fillPaint(resultTierArgb(result.overallTier)),
         )
         return cardRect.bottom
     }
@@ -229,7 +225,7 @@ object ResultPdfExporter {
             val barRight = PAGE_WIDTH - MARGIN - rightWidth
             val barTop = y + 10
             val barBottom = barTop + barHeight
-            val accent = areaColor(score.type)
+            val accent = areaAccentArgb(score.type)
             canvas.drawRoundRect(
                 RectF(barLeft, barTop, barRight, barBottom), 4f, 4f,
                 fillPaint(withAlpha(accent, 0x33)),
@@ -256,7 +252,7 @@ object ResultPdfExporter {
     private fun drawSectionHeader(canvas: Canvas, y: Float, title: String): Float {
         canvas.drawText(title, MARGIN, y + 14, textPaint(13f, DARK_TEXT, bold = true))
         val lineY = y + 19
-        canvas.drawLine(MARGIN, lineY, MARGIN + 30, lineY, linePaint(CORAL, 2f))
+        canvas.drawLine(MARGIN, lineY, MARGIN + 30, lineY, strokePaint(CORAL, 2f))
         return y + 22
     }
 
@@ -325,46 +321,4 @@ object ResultPdfExporter {
         return cursorY
     }
 
-    private fun textPaint(sizePx: Float, color: Int, bold: Boolean = false): Paint = Paint().apply {
-        isAntiAlias = true
-        this.color = color
-        textSize = sizePx
-        typeface = if (bold) Typeface.create(Typeface.DEFAULT, Typeface.BOLD) else Typeface.DEFAULT
-    }
-
-    private fun fillPaint(color: Int): Paint = Paint().apply {
-        isAntiAlias = true
-        style = Paint.Style.FILL
-        this.color = color
-    }
-
-    private fun strokePaint(color: Int, strokeWidth: Float): Paint = Paint().apply {
-        isAntiAlias = true
-        style = Paint.Style.STROKE
-        this.color = color
-        this.strokeWidth = strokeWidth
-    }
-
-    private fun linePaint(color: Int, strokeWidth: Float): Paint = Paint().apply {
-        isAntiAlias = true
-        style = Paint.Style.STROKE
-        this.color = color
-        this.strokeWidth = strokeWidth
-    }
-
-    private fun withAlpha(color: Int, alpha: Int): Int =
-        (alpha shl 24) or (color and 0x00FFFFFF)
-
-    private fun tierColor(tier: ResultTier): Int = when (tier) {
-        ResultTier.NORMAL -> 0xFF7FC8A9.toInt()
-        ResultTier.CAUTION -> 0xFFF4B860.toInt()
-        ResultTier.CONSULT -> CORAL
-    }
-
-    private fun areaColor(type: DevelopmentAreaType): Int = when (type) {
-        DevelopmentAreaType.SOCIAL -> 0xFFF7A8B8.toInt()
-        DevelopmentAreaType.LANGUAGE -> 0xFF8CC8E8.toInt()
-        DevelopmentAreaType.COGNITIVE -> 0xFFBFA8D9.toInt()
-        DevelopmentAreaType.PHYSICAL -> 0xFF9FD9BF.toInt()
-    }
 }

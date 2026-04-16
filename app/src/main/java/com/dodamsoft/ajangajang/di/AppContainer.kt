@@ -101,7 +101,7 @@ object AppContainer {
         initializer {
             HomeViewModel(
                 observeChildProfiles = observeChildProfilesUseCase,
-                getRecentRecords = getRecentCheckRecordsUseCase,
+                observeAllRecords = observeAllCheckRecordsUseCase,
                 appPreferences = appPreferencesRepository,
                 setPrimaryChild = setPrimaryChildUseCase,
             )

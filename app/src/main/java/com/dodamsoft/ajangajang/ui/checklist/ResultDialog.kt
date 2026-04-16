@@ -24,9 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
-
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -35,9 +33,7 @@ import com.dodamsoft.ajangajang.domain.model.CheckResult
 import com.dodamsoft.ajangajang.domain.model.ChildProfile
 import com.dodamsoft.ajangajang.domain.model.ResultTier
 import com.dodamsoft.ajangajang.ui.share.ShareActionSheet
-import com.dodamsoft.ajangajang.ui.theme.StateDanger
-import com.dodamsoft.ajangajang.ui.theme.StateSuccess
-import com.dodamsoft.ajangajang.ui.theme.StateWarning
+import com.dodamsoft.ajangajang.ui.theme.resultTierColor
 
 @Composable
 fun ResultDialog(
@@ -132,10 +128,4 @@ private fun buildTierMessage(tier: ResultTier): AnnotatedString {
         pop()
         append(description)
     }
-}
-
-fun resultTierColor(tier: ResultTier): Color = when (tier) {
-    ResultTier.NORMAL -> StateSuccess
-    ResultTier.CAUTION -> StateWarning
-    ResultTier.CONSULT -> StateDanger
 }

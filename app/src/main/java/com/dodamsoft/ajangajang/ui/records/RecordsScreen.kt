@@ -41,7 +41,7 @@ import com.dodamsoft.ajangajang.domain.model.CheckRecord
 import com.dodamsoft.ajangajang.ui.charts.TrendLineChart
 import com.dodamsoft.ajangajang.ui.charts.TrendPoint
 import com.dodamsoft.ajangajang.ui.checklist.ResultDialog
-import com.dodamsoft.ajangajang.ui.checklist.resultTierColor
+import com.dodamsoft.ajangajang.ui.theme.resultTierColor
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 
@@ -82,9 +82,9 @@ fun RecordsScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    if (state.hasTrend) {
+                    state.trend?.takeIf { it.points.size >= 2 }?.let { trend ->
                         item(key = "trend") {
-                            TrendCard(points = state.trend!!.points)
+                            TrendCard(points = trend.points)
                         }
                     }
                     state.groups.forEach { group ->
@@ -221,9 +221,6 @@ private fun RecordRow(
         }
     }
 }
-
-@Composable
-private fun IntrinsicMinHeight80() = Modifier
 
 @Composable
 private fun EmptyRecords(onStartChecklist: () -> Unit) {

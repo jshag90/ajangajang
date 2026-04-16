@@ -6,6 +6,7 @@ import com.dodamsoft.ajangajang.data.preferences.AppPreferencesRepository
 import com.dodamsoft.ajangajang.domain.model.CheckResult
 import com.dodamsoft.ajangajang.domain.model.ChecklistStage
 import com.dodamsoft.ajangajang.domain.model.ChildProfile
+import com.dodamsoft.ajangajang.domain.model.resolveActive
 import com.dodamsoft.ajangajang.domain.usecase.CalculateResultUseCase
 import com.dodamsoft.ajangajang.domain.usecase.GetChecklistStageUseCase
 import com.dodamsoft.ajangajang.domain.usecase.ObserveChildProfilesUseCase
@@ -14,7 +15,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -48,11 +48,10 @@ class ChecklistViewModel(
         load()
         viewModelScope.launch {
             observeChildProfiles()
-                .combine(appPreferences.preferences) { profiles, prefs -> profiles to prefs }
-                .collect { (profiles, prefs) ->
-                    val active = profiles.firstOrNull { it.id == prefs.activeChildId }
-                        ?: profiles.firstOrNull { it.isPrimary }
-                        ?: profiles.firstOrNull()
+                .combine(appPreferences.preferences) { profiles, prefs ->
+                    profiles.resolveActive(prefs.activeChildId)
+                }
+                .collect { active ->
                     _state.update { it.copy(activeChild = active) }
                 }
         }
@@ -85,13 +84,12 @@ class ChecklistViewModel(
         val result = calculateResult(stage, current.checked)
         _state.update { it.copy(result = result, resultSaved = false) }
 
+        val activeChildId = current.activeChild?.id
         viewModelScope.launch {
-            runCatching {
-                val activeChildId = appPreferences.preferences.first().activeChildId
-                saveCheckRecord(result, activeChildId)
-            }.onSuccess {
-                _state.update { it.copy(resultSaved = true) }
-            }
+            runCatching { saveCheckRecord(result, activeChildId) }
+                .onSuccess {
+                    _state.update { it.copy(resultSaved = true) }
+                }
         }
     }
 

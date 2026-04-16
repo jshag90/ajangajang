@@ -5,7 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.dodamsoft.ajangajang.data.preferences.AppPreferencesRepository
 import com.dodamsoft.ajangajang.domain.model.CheckRecord
 import com.dodamsoft.ajangajang.domain.model.ChildProfile
-import com.dodamsoft.ajangajang.domain.usecase.GetRecentCheckRecordsUseCase
+import com.dodamsoft.ajangajang.domain.model.resolveActive
+import com.dodamsoft.ajangajang.domain.usecase.ObserveAllCheckRecordsUseCase
 import com.dodamsoft.ajangajang.domain.usecase.ObserveChildProfilesUseCase
 import com.dodamsoft.ajangajang.domain.usecase.SetPrimaryChildUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +16,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+private const val RECENT_RECORDS_LIMIT = 3
+
 data class HomeUiState(
     val profiles: List<ChildProfile> = emptyList(),
     val activeChildId: Long? = null,
@@ -22,15 +25,12 @@ data class HomeUiState(
     val loading: Boolean = true,
 ) {
     val isGuest: Boolean get() = profiles.isEmpty()
-    val activeChild: ChildProfile?
-        get() = profiles.firstOrNull { it.id == activeChildId }
-            ?: profiles.firstOrNull { it.isPrimary }
-            ?: profiles.firstOrNull()
+    val activeChild: ChildProfile? get() = profiles.resolveActive(activeChildId)
 }
 
 class HomeViewModel(
     observeChildProfiles: ObserveChildProfilesUseCase,
-    private val getRecentRecords: GetRecentCheckRecordsUseCase,
+    observeAllRecords: ObserveAllCheckRecordsUseCase,
     private val appPreferences: AppPreferencesRepository,
     private val setPrimaryChild: SetPrimaryChildUseCase,
 ) : ViewModel() {
@@ -40,25 +40,18 @@ class HomeViewModel(
 
     init {
         viewModelScope.launch {
-            observeChildProfiles()
-                .combine(appPreferences.preferences) { profiles, prefs -> profiles to prefs }
-                .collect { (profiles, prefs) ->
-                    _state.update {
-                        it.copy(
-                            profiles = profiles,
-                            activeChildId = prefs.activeChildId,
-                            loading = false,
-                        )
-                    }
-                    refreshRecentRecords()
-                }
-        }
-    }
-
-    private fun refreshRecentRecords() {
-        viewModelScope.launch {
-            val recent = runCatching { getRecentRecords(3) }.getOrDefault(emptyList())
-            _state.update { it.copy(recentRecords = recent) }
+            combine(
+                observeChildProfiles(),
+                appPreferences.preferences,
+                observeAllRecords(),
+            ) { profiles, prefs, records ->
+                HomeUiState(
+                    profiles = profiles,
+                    activeChildId = prefs.activeChildId,
+                    recentRecords = records.take(RECENT_RECORDS_LIMIT),
+                    loading = false,
+                )
+            }.collect { next -> _state.value = next }
         }
     }
 
